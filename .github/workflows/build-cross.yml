@@ -53,7 +53,7 @@ jobs:
 
           # Linux behavioral integration check for core file-processing logic.
           gcc -std=c89 -O2 -o dist/noz_linux_test src/noz.c
-          printf '\x41\x1d\x42\x1d\x43' > dist/sample.bin
+          printf '\x41\x1d\x42\x1a\x43' > dist/sample.bin
           ./dist/noz_linux_test dist/sample.bin
           [ "$(xxd -p dist/sample.bin)" = "414243" ]
 

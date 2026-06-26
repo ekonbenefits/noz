@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define EOF_MARKER 0x1D
+#define EOF_MARKER_1D 0x1D
+#define EOF_MARKER_1A 0x1A
 #define MAX_PATH_BUFFER 1024
 #define TEMP_EXT ".NZT"
 
@@ -53,7 +54,7 @@ static int process_file(const char *path) {
     }
 
     while ((ch = fgetc(in_file)) != EOF) {
-        if (((unsigned char)ch) != EOF_MARKER) {
+        if (((unsigned char)ch) != EOF_MARKER_1D && ((unsigned char)ch) != EOF_MARKER_1A) {
             if (fputc(ch, out_file) == EOF) {
                 int saved_errno = errno;
                 fclose(in_file);

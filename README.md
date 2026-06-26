@@ -1,6 +1,6 @@
 # noz
 
-`noz` removes Clipper EOF marker bytes (`0x1D`) from files in-place.
+`noz` removes Clipper EOF marker bytes (`0x1D` and `0x1A`) from files in-place.
 
 ## Targets
 
