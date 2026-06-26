@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install MinGW (Win32)
         run: |
@@ -58,7 +58,7 @@ jobs:
           [ "$(xxd -p dist/sample.bin)" = "414243" ]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: noz-windows-binaries
           path: |
