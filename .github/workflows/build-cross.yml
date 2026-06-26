@@ -1,0 +1,66 @@
+name: Build noz (Win32 + DOS16)
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MinGW (Win32)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-i686
+
+      - name: Build Win32 executable (noz.exe)
+        run: |
+          mkdir -p dist
+          i686-w64-mingw32-gcc -std=c89 -O2 -s -o dist/noz.exe src/noz.c
+
+      - name: Install OpenWatcom (DOS16 toolchain)
+        uses: open-watcom/setup-watcom@v1
+        with:
+          version: "2.0"
+          tag: "current"
+          target: "dos"
+
+      - name: Build DOS16 executable (noz_16.exe)
+        run: |
+          wcl -q -bt=dos -fe=dist/noz_16.exe src/noz.c
+
+      - name: Integration checks (Linux-safe)
+        run: |
+          set -euo pipefail
+
+          # Artifact contract: both files must exist and be non-empty.
+          test -s dist/noz.exe
+          test -s dist/noz_16.exe
+
+          # Both binaries should start with an MZ header.
+          [ "$(xxd -p -l 2 dist/noz.exe)" = "4d5a" ]
+          [ "$(xxd -p -l 2 dist/noz_16.exe)" = "4d5a" ]
+
+          # Win32 output should be a PE i386 executable.
+          i686-w64-mingw32-objdump -f dist/noz.exe | grep -q "pei-i386"
+
+          # Linux behavioral integration check for core file-processing logic.
+          gcc -std=c89 -O2 -o dist/noz_linux_test src/noz.c
+          printf '\x41\x1d\x42\x1d\x43' > dist/sample.bin
+          ./dist/noz_linux_test dist/sample.bin
+          [ "$(xxd -p dist/sample.bin)" = "414243" ]
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: noz-windows-binaries
+          path: |
+            dist/noz.exe
+            dist/noz_16.exe
