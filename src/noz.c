@@ -4,31 +4,7 @@
 
 #define EOF_MARKER 0x1D
 #define MAX_PATH_BUFFER 1024
-
-/* Keep this out of local stack frames for small DOS stack defaults. */
-static char normalized_path[MAX_PATH_BUFFER];
-
-static const char *normalize_arg_path(const char *arg, char *buffer, size_t buffer_len) {
-    size_t len;
-
-    if (arg == NULL) {
-        return "";
-    }
-
-    len = strlen(arg);
-    if (len >= 2 && arg[0] == '"' && arg[len - 1] == '"') {
-        size_t inner_len = len - 2;
-        if (inner_len + 1 > buffer_len) {
-            return arg;
-        }
-
-        memcpy(buffer, arg + 1, inner_len);
-        buffer[inner_len] = '\0';
-        return buffer;
-    }
-
-    return arg;
-}
+#define TEMP_EXT ".NZT"
 
 static int process_file(const char *path) {
     FILE *in_file;
@@ -36,9 +12,11 @@ static int process_file(const char *path) {
     int ch;
     char tmp_path[MAX_PATH_BUFFER];
     size_t path_len;
+    char *dot;
+    char *scan;
 
     path_len = strlen(path);
-    if (path_len + 8 >= sizeof(tmp_path)) {
+    if (path_len + sizeof(TEMP_EXT) >= sizeof(tmp_path)) {
         errno = ENAMETOOLONG;
         return 1;
     }
@@ -49,7 +27,22 @@ static int process_file(const char *path) {
     }
 
     memcpy(tmp_path, path, path_len + 1);
-    strcat(tmp_path, ".noztmp");
+
+    /* DOS-safe temp file: replace existing extension, or append .NZT. */
+    dot = NULL;
+    for (scan = tmp_path; *scan != '\0'; ++scan) {
+        if (*scan == '\\' || *scan == '/' || *scan == ':') {
+            dot = NULL;
+        } else if (*scan == '.') {
+            dot = scan;
+        }
+    }
+
+    if (dot != NULL) {
+        strcpy(dot, TEMP_EXT);
+    } else {
+        strcat(tmp_path, TEMP_EXT);
+    }
 
     out_file = fopen(tmp_path, "wb");
     if (out_file == NULL) {
@@ -123,14 +116,12 @@ static int noz_run(int argc, char **argv) {
 
     failed = 0;
     for (i = 1; i < argc; ++i) {
-        const char *path = normalize_arg_path(argv[i], normalized_path, sizeof(normalized_path));
-
-        if (process_file(path) != 0) {
+        if (process_file(argv[i]) != 0) {
             const char *reason = strerror(errno);
             if (reason == NULL || reason[0] == '\0') {
                 reason = "unknown error";
             }
-            fprintf(stderr, "Failed to process '%s': %s\n", path, reason);
+            fprintf(stderr, "Failed to process '%s': %s\n", argv[i], reason);
             failed = 1;
         }
     }
