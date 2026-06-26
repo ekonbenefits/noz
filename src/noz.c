@@ -5,6 +5,9 @@
 #define EOF_MARKER 0x1D
 #define MAX_PATH_BUFFER 1024
 
+/* Keep this out of local stack frames for small DOS stack defaults. */
+static char normalized_path[MAX_PATH_BUFFER];
+
 static const char *normalize_arg_path(const char *arg, char *buffer, size_t buffer_len) {
     size_t len;
 
@@ -112,7 +115,6 @@ static int process_file(const char *path) {
 static int noz_run(int argc, char **argv) {
     int i;
     int failed;
-    char normalized_path[MAX_PATH_BUFFER];
 
     if (argc < 2) {
         fprintf(stderr, "Usage: noz <file> [file ...]\n");
